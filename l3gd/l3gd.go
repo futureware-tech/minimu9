@@ -1,8 +1,11 @@
 package l3gd
 
 import (
+	"bytes"
+	"encoding/binary"
+
 	"github.com/dasfoo/i2c"
-	"github.com/golang/geo/r3"
+	"github.com/dasfoo/minimu9"
 )
 
 // L3GD is a sensor driver implementation for L3GD20H Gyro.
@@ -107,18 +110,18 @@ func (l3g *L3GD) SetFrequency(hz int) error {
 // Call sequence:
 //   SetFrequency(...)
 //   in a loop: Read()
-func (l3g *L3GD) Read() (v r3.Vector, err error) {
-	bytes := make([]byte, 7)
-	if _, err = l3g.bus.ReadSliceFromReg(l3g.address, 0x27|(1<<7), bytes); err != nil {
+func (l3g *L3GD) Read() (v *minimu9.Vector, err error) {
+	data := make([]byte, 7)
+	if _, err = l3g.bus.ReadSliceFromReg(l3g.address, 0x27|(1<<7), data); err != nil {
 		return
 	}
-	// Terrible casts, but what could we do?
-	v.X = float64((int(int8(bytes[2])) << 8) | int(int8(bytes[1])))
-	v.Y = float64((int(int8(bytes[4])) << 8) | int(int8(bytes[3])))
-	v.Z = float64((int(int8(bytes[6])) << 8) | int(int8(bytes[5])))
-	if bytes[0]&0xf0 > 0 {
+	dataReader := bytes.NewReader(data[1:])
+	if err = binary.Read(dataReader, binary.LittleEndian, &v); err != nil {
+		return
+	}
+	if data[0]&0xf0 > 0 {
 		err = &DataAvailabilityError{NewDataWasOverwritten: true}
-	} else if bytes[0]&0x0f == 0 {
+	} else if data[0]&0x0f == 0 {
 		err = &DataAvailabilityError{NewDataNotAvailable: true}
 	}
 	return
