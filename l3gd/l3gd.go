@@ -97,7 +97,8 @@ func (l3g *L3GD) Read() (v *minimu9.Vector, err error) {
 		return
 	}
 	dataReader := bytes.NewReader(data[1:])
-	if err = binary.Read(dataReader, binary.LittleEndian, &v); err != nil {
+	v = &minimu9.Vector{}
+	if err = binary.Read(dataReader, binary.LittleEndian, v); err != nil {
 		return
 	}
 	if data[0]&0xf0 > 0 {
