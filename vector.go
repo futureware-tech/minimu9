@@ -2,7 +2,7 @@ package minimu9
 
 import "github.com/golang/geo/r3"
 
-// 3D Vector with integer dimensions.
+// Vector holds integer dimensions of a 3D vector.
 type Vector struct {
 	X, Y, Z int16
 }

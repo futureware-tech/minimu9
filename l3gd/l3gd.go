@@ -33,25 +33,6 @@ const (
 	regLowOdr = 0x39
 )
 
-// DataAvailabilityError is a "soft" error which tells that some data was
-// either lost (not read by the user before it was overwritten with a new value),
-// or not available yet (the measurement frequency is too low).
-type DataAvailabilityError struct {
-	NewDataNotAvailable   bool
-	NewDataWasOverwritten bool
-}
-
-// Error returns human-readable description string for the error.
-func (e *DataAvailabilityError) Error() string {
-	if e.NewDataNotAvailable {
-		return "Warning: there was no new measurement since the previous read."
-	}
-	if e.NewDataWasOverwritten {
-		return "Warning: a new measurement was acquired before the previous was read."
-	}
-	return "An unknown error has occured. Data may be stale."
-}
-
 // Sleep puts the sensor in low power consumption mode.
 func (l3g *L3GD) Sleep() error {
 	// There's not just power control in CTRL1, we need to keep other values.
@@ -106,7 +87,7 @@ func (l3g *L3GD) SetFrequency(hz int) error {
 }
 
 // Read reads new data from the sensor.
-// Note: err might be a warning about data "freshness" if it's DataAvailabilityError.
+// Note: err might be a warning about data "freshness" if it's minimu9.DataAvailabilityError.
 // Call sequence:
 //   SetFrequency(...)
 //   in a loop: Read()
@@ -120,9 +101,9 @@ func (l3g *L3GD) Read() (v *minimu9.Vector, err error) {
 		return
 	}
 	if data[0]&0xf0 > 0 {
-		err = &DataAvailabilityError{NewDataWasOverwritten: true}
+		err = &minimu9.DataAvailabilityError{NewDataWasOverwritten: true}
 	} else if data[0]&0x0f == 0 {
-		err = &DataAvailabilityError{NewDataNotAvailable: true}
+		err = &minimu9.DataAvailabilityError{NewDataNotAvailable: true}
 	}
 	return
 }
