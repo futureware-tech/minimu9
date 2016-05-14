@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<title>AHRS visualizer</title>
+
+<script>
+function Pad(rect, padding) {
+    return [
+        rect[0] + padding,
+        rect[1] + padding,
+        rect[2] - padding*2,
+        rect[3] - padding*2,
+    ];
+}
+
+/*
+ * Graphics for the cube based on
+ * http://codentronix.com/2011/05/10/html5-experiment-a-rotating-solid-cube/
+ */
+function Point(dimensions) {
+    this.dim = dimensions.slice();
+    this.rotate = function(angles) {
+        this.dim = dimensions.slice();
+        for (var i = 0; i < angles.length; i++) {
+      var sin = Math.sin(angles[i]),
+          cos = Math.cos(angles[i]);
+      this.dim.push(this.dim.shift());
+      value = this.dim[0] * cos - this.dim[1] * sin;
+      this.dim[1] = this.dim[0] * sin + this.dim[1] * cos;
+      this.dim[0] = value;
+        }
+    }
+    this.project = function(size) {
+        var factor = Math.min.apply(Math, size) /
+      (this.dim[2] + 4);
+        for (var i = 0; i < size.length; i++) {
+      this.dim[i] = this.dim[i] * factor + size[i] / 2;
+        }
+    }
+}
+
+function Cube() {
+    var vertices = [
+        new Point([-1, 1, -1]),
+        new Point([1, 1, -1]),
+        new Point([1, -1, -1]),
+        new Point([-1, -1, -1]),
+        new Point([-1, 1, 1]),
+        new Point([1, 1, 1]),
+        new Point([1, -1, 1]),
+        new Point([-1, -1, 1]),
+    ];
+
+    // Define the vertices that compose each of the 6 faces. These numbers are
+    // indices to the vertex list defined above.
+    var faces = [
+        [0, 1, 2, 3], [1, 5, 6, 2], [5, 4, 7, 6],
+        [4, 0, 3, 7], [0, 4, 5, 1], [3, 2, 6, 7],
+    ];
+    // Assign some colors.
+    var faceColors = [
+        "green", "red", "blue",
+        "yellow", "white", "magenta",
+    ];
+    for (var i = 0; i < faceColors.length; i++) {
+        faces[i].color = faceColors[i];
+    }
+
+    this.rotate = function(angles) {
+        for (var i = 0; i < vertices.length; i++) {
+      vertices[i].rotate(angles);
+        }
+    }
+
+    this.draw = function(ctx, rect) {
+        for (var i = 0; i < vertices.length; i++) {
+      vertices[i].project(rect.slice(2));
+        }
+
+        // Sort faces in rendering order.
+        for (var i = 0; i < faces.length; i++) {
+      var f = faces[i];
+      f.z = vertices[f[0]].dim[2] +
+              vertices[f[1]].dim[2] +
+              vertices[f[2]].dim[2] +
+              vertices[f[3]].dim[2];
+        }
+        faces.sort(function(a, b) { return b.z - a.z });
+
+        // Render the faces and edges.
+        for (var i = 0; i < faces.length; i++) {
+      var f = faces[i];
+      ctx.fillStyle = f.color;
+      ctx.strokeStyle = "black";
+      ctx.beginPath();
+      ctx.moveTo(rect[0] + vertices[f[0]].dim[0],
+                 rect[1] + vertices[f[0]].dim[1]);
+      for (var j = 1; j < f.length; j++) {
+          ctx.lineTo(rect[0] + vertices[f[j]].dim[0],
+               rect[1] + vertices[f[j]].dim[1]);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+        }
+    }
+}
+
+function Chart2D(size) {
+    var data = [];
+    this.add = function(x, y) {
+        data.push([x, y]);
+        while (data.length > size) {
+      data.shift();
+        }
+    }
+    this.draw = function(ctx, rect) {
+        ctx.strokeStyle = "gray";
+        drawAxis(ctx, rect);
+        var factor = Math.min.apply(Math, rect.slice(2)) / 2;
+        for (var i = 0; i < data.length; i++) {
+      ctx.fillStyle = "rgb(30,30," + Math.trunc(i*256/data.length) + ")";
+      ctx.fillRect(
+              rect[0] + data[i][0]*factor+rect[2]/2,
+              rect[1] + data[i][1]*factor+rect[3]/2, 1, 1);
+        }
+    }
+}
+
+function Chart(size) {
+    var data = [],
+        colors = ["red", "yellow", "white"];
+    this.add = function(point) {
+        data.push(point);
+        while (data.length > size) {
+      data.shift();
+        }
+    }
+    this.draw = function(ctx, rect) {
+        if (!data.length) { return; }
+        var step = rect[2] / size;
+        ctx.lineWidth = 1;
+        for (var lineIndex = 0; lineIndex < data[0].length; lineIndex++) {
+      ctx.strokeStyle = colors[lineIndex];
+      ctx.beginPath();
+      for (var i = 0; i < data.length; i++) {
+          var method = i ? "lineTo" : "moveTo",
+              value = data[i][lineIndex];
+          ctx[method](
+            rect[0] + step * i,
+            rect[1] + (1 - value) / 2 * rect[3]);
+      }
+      ctx.stroke();
+        }
+    }
+}
+
+function drawAxis(ctx, rect) {
+    ctx.beginPath();
+    ctx.moveTo(rect[0], rect[1]+rect[3]/2);
+    ctx.lineTo(rect[0]+rect[2], rect[1]+rect[3]/2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rect[0]+rect[2]/2, rect[1]);
+    ctx.lineTo(rect[0]+rect[2]/2, rect[1]+rect[3]);
+    ctx.stroke();
+}
+
+function clearCanvas(ctx, width, height, pad) {
+    pad -= 2;
+
+    // Fill with black
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
+    // Draw separators
+    ctx.strokeStyle = "blue";
+    drawAxis(ctx, [0, 0, width, height]);
+    // Draw text labels
+    ctx.font = pad + "px Arial";
+    ctx.fillStyle = "gray";
+
+    ctx.fillText("Heading", pad, pad);
+    ctx.fillText("Accelerometer", width/2+pad, pad);
+    ctx.fillText("Magnetometer", pad, height/2+pad);
+    ctx.fillText("Gyro", width/2+pad, height/2+pad);
+}
+
+function floatToStr(f) {
+    return Math.round(f*1000)/1000;
+}
+
+window.onload = function() {
+    var canvas = document.getElementById("screen"),
+        ctx = canvas.getContext("2d"),
+        heading = new Cube(),
+        accelChart = new Chart(100),
+        gyroChart = new Chart(100),
+        magnetSphere = new Chart2D(500),
+        width = canvas.clientWidth,
+        height = canvas.clientHeight,
+        padding = 12;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    var data = new WebSocket("ws://" + document.location.host + "/minimu9");
+    data.onclose = function(e) {
+        console.log("Connection closed (code " + e.code + "): " + e.reason);
+    };
+    data.onerror = function(e) {
+        console.log("Connection error: " + e);
+    };
+    data.onmessage = function(evt) {
+        vectors = JSON.parse(evt.data);
+        // vectors.A is accelerometer vector
+        //        .M is magnetometer
+        //        .MR is magnetometer range (if computed)
+        //        .G is gyro
+        //        .H is heading
+
+        if (vectors.E) {
+      document.getElementById("error").innerText = vectors.E;
+      delete vectors.E;
+        }
+
+        for (var n in vectors) {
+      for (var v in vectors[n]) {
+          var els = document.getElementsByName(n + "." + v);
+          if (els.length == 1) {
+              els[0].innerText = floatToStr(vectors[n][v]);
+          }
+      }
+        }
+
+        clearCanvas(ctx, width, height, padding);
+
+        heading.rotate([
+          vectors.H.X,
+          vectors.H.Y,
+          vectors.H.Z,
+        ]);
+        heading.draw(ctx, Pad([0, 0, width/2, height/2], padding));
+
+        magnetSphere.add(
+          vectors.M.X / (vectors.MR.X > 0 ? vectors.MR.X*0.55 : 1),
+          vectors.M.Y / (vectors.MR.Y > 0 ? vectors.MR.Y*0.55 : 1));
+        magnetSphere.draw(ctx, [0, height/2, width/2, height/2]);
+
+        // Scale all vectors to fit full scale into the view.
+        for (var n in vectors) {
+      var fullScaleInputs = document.getElementsByName(n + ".full_scale");
+      if (fullScaleInputs.length == 1) {
+          var scale = fullScaleInputs[0].value;
+          for (var v in vectors[n]) {
+              vectors[n][v] /= scale;
+          }
+      }
+        }
+
+        accelChart.add([vectors.A.X, vectors.A.Y, vectors.A.Z]);
+        accelChart.draw(ctx, Pad([width/2, 0, width/2, height/2], padding));
+
+        gyroChart.add([vectors.G.X, vectors.G.Y, vectors.G.Z]);
+        gyroChart.draw(ctx,
+          Pad([width/2, height/2, width/2, height/2], padding));
+    }
+
+    configInputChanged = function(e) {
+        var value = this.value;
+        if ("checked" in this) {
+      value = this.checked;
+        }
+        data.send(this.name + "=" + value);
+    }
+
+    var configInputs = [].slice.call(document.getElementsByTagName("select"));
+    configInputs = configInputs.concat(
+      [].slice.call(document.getElementsByTagName("input")));
+    for (var i = 0; i < configInputs.length; i++) {
+        if (configInputs[i].type === "button") {
+      configInputs[i].onclick = configInputChanged;
+        } else {
+      configInputs[i].onchange = configInputChanged;
+        }
+    }
+
+    data.onopen = function(e) {
+        console.log("Connection opened");
+        for (var i = 0; i < configInputs.length; i++) {
+      if (configInputs[i].type !== "button") {
+          // Trigger the change to ensure device is configured accordingly
+          configInputChanged.call(configInputs[i], null);
+      }
+        }
+    };
+}
+</script>
+<body style="background: black; color: gray; display: flex; font-size: 100%">
+  <canvas id="screen" style="width: 85%; height: 100%">
+    Your browser does not support the HTML5 canvas element.
+  </canvas>
+  <div style="overflow: hidden; width: 15%">
+    <select name="frequency">
+      <option value="100">100
+      <option value="30" selected>30
+      <option value="20">20
+      <option value="10">10
+      <option value="5">5
+      <option value="1">1
+    </select> Hz data rate
+    <fieldset>
+      <legend>Accelerometer</legend>
+      <select name="A.frequency">
+        <option value="3.125">3.125
+        <option value="6.25">6.25
+        <option value="12.5">12.5
+        <option value="25">25
+        <option value="50">50
+        <option value="100">100
+        <option value="200">200
+        <option value="400" selected>400
+        <option value="800">800
+        <option value="1600">1600
+      </select> Hz<br>
+      <select name="A.antialias_bandwidth">
+        <option value="773">773
+        <option value="194">194
+        <option value="362">362
+        <option value="50" selected>50
+      </select> Hz antialias<br>
+      <select name="A.full_scale">
+        <option value="2" selected>±2g
+        <option value="4">±4g
+        <option value="6">±6g
+        <option value="8">±8g
+        <option value="16">±16g
+      </select> full scale<br>
+      <label>
+        <input name="A.power_down" type="checkbox">
+        power down
+      </label><br>
+      X: <span name="A.X">n/a</span><br>
+      Y: <span name="A.Y">n/a</span><br>
+      Z: <span name="A.Z">n/a</span>
+    </fieldset>
+    <fieldset>
+      <legend>Magnetometer</legend>
+      <select name="M.frequency">
+        <option value="3.125">3.125
+        <option value="6.25">6.25
+        <option value="12.5">12.5
+        <option value="25">25
+        <option value="50">50
+        <option value="100">100
+      </select> Hz<br>
+      <select name="M.full_scale">
+        <option value="2">±2G
+        <option value="4">±4G
+        <option value="8">±8G
+        <option value="12">±12G
+      </select> full scale<br>
+      <label>
+        <input name="M.power_down" type="checkbox">
+        power down
+      </label><br>
+      X: <span name="M.X">n/a</span><br>
+      Y: <span name="M.Y">n/a</span><br>
+      Z: <span name="M.Z">n/a</span>
+      <hr>
+      <input name="M.calibrate" value="Calibrate (30s)" type="button"><br>
+      range X: <span name="MR.X">n/a</span><br>
+      range Y: <span name="MR.Y">n/a</span><br>
+      range Z: <span name="MR.Z">n/a</span>
+    </fieldset>
+    <fieldset>
+      <legend>Gyro</legend>
+      <select name="G.frequency">
+        <option value="12.5">12.5
+        <option value="25">25
+        <option value="50">50
+        <option value="100">100
+        <option value="200">200
+        <option value="400">400
+        <option value="800">800
+      </select> Hz<br>
+      <select name="G.full_scale">
+        <option value="245">245°/s
+        <option value="500">500°/s
+        <option value="2000">2000°/s
+      </select> full scale<br>
+      <label>
+        <input name="G.power_down" type="checkbox">
+        power down
+      </label><br>
+      X: <span name="G.X">n/a</span><br>
+      Y: <span name="G.Y">n/a</span><br>
+      Z: <span name="G.Z">n/a</span>
+      <hr>
+      <input name="G.calibrate" value="Calibrate (5s)" type="button">
+    </fieldset>
+    Heading:<br>
+    X: <span name="H.X">n/a</span><br>
+    Y: <span name="H.Y">n/a</span><br>
+    Z: <span name="H.Z">n/a</span><br>
+    <span id="error" style="color: red"></span>
+  </div>

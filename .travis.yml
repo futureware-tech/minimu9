@@ -1,0 +1,18 @@
+language: go
+
+go:
+- 1.6
+- tip
+
+addons:
+  apt:
+    packages:
+    - libi2c-dev
+
+script:
+- curl https://raw.githubusercontent.com/dasfoo/travis/master/go.sh | sh
+- curl https://raw.githubusercontent.com/dasfoo/travis/master/html.sh | sh -s -- examples/index.html
+
+branches:
+  only:
+  - master
