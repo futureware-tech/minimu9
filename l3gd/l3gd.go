@@ -57,17 +57,18 @@ func (l3g *Gyro) Wake() error {
 }
 
 var bitsLowodrDrForFrequency = [...][3]int{
+	// There's also "bandwidth" in that register, but experimentally
+	// proven useless for I2C. Perhaps only useful for SPI.
 	{12, 1, 0x0f},
-	{25, 1, 0x1f},
-	{50, 1, 0x2f},
+	{25, 1, 0x4f},
+	{50, 1, 0x8f},
 	{100, 0, 0x0f},
-	{200, 0, 0x1f},
-	{400, 0, 0x2f},
-	{800, 0, 0x3f},
+	{200, 0, 0x4f},
+	{400, 0, 0x8f},
+	{800, 0, 0xcf},
 }
 
 // SetFrequency sets Output Data Rate, in Hz, range 12 .. 800.
-// TODO(dotdoom): enable filter
 func (l3g *Gyro) SetFrequency(hz int) error {
 	// ~250 dps full scale (gain).
 	if err := l3g.bus.WriteByteToReg(l3g.address, regCtrl4, 0x00); err != nil {
