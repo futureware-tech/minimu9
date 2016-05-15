@@ -8,10 +8,10 @@ import (
 	"github.com/dasfoo/minimu9"
 )
 
-// L3GD is a sensor driver implementation for L3GD20H Gyro.
+// Gyro is a sensor driver implementation for L3GD20H Gyro.
 // Documentation: http://goo.gl/Nb95rx
 // Arduino code samples: https://github.com/pololu/l3g-arduino
-type L3GD struct {
+type Gyro struct {
 	bus     *i2c.Bus
 	address byte
 }
@@ -19,9 +19,9 @@ type L3GD struct {
 // DefaultAddress is a default I2C address for this sensor.
 const DefaultAddress = 0x6b
 
-// NewL3GD creates new instance of L3GD bound to I2C bus and address.
-func NewL3GD(bus *i2c.Bus, addr byte) *L3GD {
-	return &L3GD{
+// NewGyro creates new instance bound to I2C bus and address.
+func NewGyro(bus *i2c.Bus, addr byte) *Gyro {
+	return &Gyro{
 		bus:     bus,
 		address: addr,
 	}
@@ -34,7 +34,7 @@ const (
 )
 
 // Sleep puts the sensor in low power consumption mode.
-func (l3g *L3GD) Sleep() error {
+func (l3g *Gyro) Sleep() error {
 	// There's not just power control in CTRL1, we need to keep other values.
 	var bw byte
 	var err error
@@ -47,7 +47,7 @@ func (l3g *L3GD) Sleep() error {
 }
 
 // Wake enables sensor if it was put into power-down mode with Sleep().
-func (l3g *L3GD) Wake() error {
+func (l3g *Gyro) Wake() error {
 	var bw byte
 	var err error
 	if bw, err = l3g.bus.ReadByteFromReg(l3g.address, regCtrl1); err != nil {
@@ -67,7 +67,8 @@ var bitsLowodrDrForFrequency = [...][3]int{
 }
 
 // SetFrequency sets Output Data Rate, in Hz, range 12 .. 800.
-func (l3g *L3GD) SetFrequency(hz int) error {
+// TODO(dotdoom): enable filter
+func (l3g *Gyro) SetFrequency(hz int) error {
 	// ~250 dps full scale (gain).
 	if err := l3g.bus.WriteByteToReg(l3g.address, regCtrl4, 0x00); err != nil {
 		return err
@@ -91,7 +92,7 @@ func (l3g *L3GD) SetFrequency(hz int) error {
 // Call sequence:
 //   SetFrequency(...)
 //   in a loop: Read()
-func (l3g *L3GD) Read() (v *minimu9.Vector, err error) {
+func (l3g *Gyro) Read() (v *minimu9.Vector, err error) {
 	data := make([]byte, 7)
 	if _, err = l3g.bus.ReadSliceFromReg(l3g.address, 0x27|(1<<7), data); err != nil {
 		return
