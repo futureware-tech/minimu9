@@ -59,13 +59,13 @@ func (l3g *Gyro) Wake() error {
 var bitsLowodrDrForFrequency = [...][3]int{
 	// There's also "bandwidth" in that register, but experimentally
 	// proven useless for I2C. Perhaps only useful for SPI.
-	{12, 1, 0x0f},
-	{25, 1, 0x4f},
-	{50, 1, 0x8f},
-	{100, 0, 0x0f},
-	{200, 0, 0x4f},
-	{400, 0, 0x8f},
-	{800, 0, 0xcf},
+	{12, 1, 0x0f},  // 10
+	{25, 1, 0x4f},  // 20
+	{50, 1, 0x8f},  // 40
+	{100, 0, 0x0f}, // 80
+	{200, 0, 0x4f}, // 150
+	{400, 0, 0x8f}, // 300
+	{800, 0, 0xcf}, // 600
 }
 
 // SetFrequency sets Output Data Rate, in Hz, range 12 .. 800.
