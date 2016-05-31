@@ -1,8 +1,6 @@
 package l3gd
 
 import (
-	"math"
-
 	"github.com/dasfoo/i2c"
 	"github.com/dasfoo/minimu9"
 	"github.com/golang/geo/r3"
@@ -57,7 +55,6 @@ func (l3g *Gyro) Wake() error {
 // Read reads new data from the sensor.
 // Note: err might be a warning about data "freshness" if it's minimu9.DataAvailabilityError.
 func (l3g *Gyro) Read() (v r3.Vector, err error) {
-	v, e := minimu9.ReadStatusAndVector(l3g.bus, l3g.address, 0x27)
-	// +- 250 dps (degrees per second) is the scale range above.
-	return v.Mul(1.0 / (math.MaxInt16 / 250.0)), e
+	// FIXME: +- 250 dps (degrees per second) is the scale range above.
+	return minimu9.ReadStatusAndVector(l3g.bus, l3g.address, 0x27, 250.0)
 }

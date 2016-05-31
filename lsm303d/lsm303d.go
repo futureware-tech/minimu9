@@ -71,10 +71,8 @@ func (a *Accelerometer) Wake() error {
 // Read reads acceleration vector, in g, from the accelerometer.
 // Note: err might be a warning about data "freshness" if it's minimu9.DataAvailabilityError.
 func (a *Accelerometer) Read() (r3.Vector, error) {
-	v, e := minimu9.ReadStatusAndVector(a.bus, a.address, 0x27)
-	// +-8 is the full scale
-	// /!\ BUG /!\ maxInt16+1
-	return v.Mul(1.0 / (math.MaxInt16 / 8)), e
+	// FIXME: +-8 is the full scale
+	return minimu9.ReadStatusAndVector(a.bus, a.address, 0x27, 8)
 }
 
 // Wake returns magnetometer into operating mode.
@@ -151,10 +149,8 @@ func (m *Magnetometer) Calibrate(stop chan int) (r3.Vector, error) {
 // Read reads new data from the magnetometer.
 // Note: err might be a warning about data "freshness" if it's minimu9.DataAvailabilityError.
 func (m *Magnetometer) Read() (r3.Vector, error) {
-	v, e := minimu9.ReadStatusAndVector(m.bus, m.address, 0x07)
-	// +-4 is the full scale set above
-	// FIXME(dotdoom): maxint16+1
-	return v.Mul(1.0 / (math.MaxInt16 / 4)), e
+	// FIXME: +-4 is the full scale set above
+	return minimu9.ReadStatusAndVector(m.bus, m.address, 0x07, 4)
 }
 
 // RelativeHeading returns current heading, in radians. May only be used in relative computations.

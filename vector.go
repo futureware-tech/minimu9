@@ -3,6 +3,7 @@ package minimu9
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
 
 	"github.com/dasfoo/i2c"
 	"github.com/golang/geo/r3"
@@ -15,7 +16,7 @@ type IntVector struct {
 }
 
 // ReadStatusAndVector reads status byte, and 3x2-byte X, Y and Z int16 vector values.
-func ReadStatusAndVector(bus i2c.Bus, addr, reg byte) (v r3.Vector, e error) {
+func ReadStatusAndVector(bus i2c.Bus, addr, reg, scale byte) (v r3.Vector, e error) {
 	var status byte
 	if status, e = bus.ReadByteFromReg(addr, reg); e != nil {
 		return
@@ -33,7 +34,7 @@ func ReadStatusAndVector(bus i2c.Bus, addr, reg byte) (v r3.Vector, e error) {
 		X: float64(iv.X),
 		Y: float64(iv.Y),
 		Z: float64(iv.Z),
-	}
+	}.Mul(float64(scale) / float64(math.MaxInt16+1))
 	return
 }
 
