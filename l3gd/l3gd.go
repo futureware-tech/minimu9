@@ -10,7 +10,7 @@ import (
 // Documentation: http://goo.gl/Nb95rx
 // Arduino code samples: https://github.com/pololu/l3g-arduino
 type Gyro struct {
-	bus     *i2c.Bus
+	bus     i2c.Bus
 	address byte
 }
 
@@ -18,7 +18,7 @@ type Gyro struct {
 const DefaultAddress = 0x6b
 
 // NewGyro creates new instance bound to I2C bus and address.
-func NewGyro(bus *i2c.Bus, addr byte) *Gyro {
+func NewGyro(bus i2c.Bus, addr byte) *Gyro {
 	return &Gyro{
 		bus:     bus,
 		address: addr,

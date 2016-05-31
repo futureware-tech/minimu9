@@ -10,7 +10,7 @@ import (
 // Documentation: http://goo.gl/qLMgFM
 // Arduino code samples: https://github.com/pololu/lsm303-arduino
 type Accelerometer struct {
-	bus     *i2c.Bus
+	bus     i2c.Bus
 	address byte
 }
 
@@ -18,7 +18,7 @@ type Accelerometer struct {
 // Documentation: http://goo.gl/qLMgFM
 // Arduino code samples: https://github.com/pololu/lsm303-arduino
 type Magnetometer struct {
-	bus     *i2c.Bus
+	bus     i2c.Bus
 	address byte
 }
 
@@ -26,7 +26,7 @@ type Magnetometer struct {
 const DefaultAddress = 0x1d
 
 // NewAccelerometer creates a new instance bound to I2C bus and address.
-func NewAccelerometer(bus *i2c.Bus, addr byte) *Accelerometer {
+func NewAccelerometer(bus i2c.Bus, addr byte) *Accelerometer {
 	return &Accelerometer{
 		bus:     bus,
 		address: addr,
@@ -34,7 +34,7 @@ func NewAccelerometer(bus *i2c.Bus, addr byte) *Accelerometer {
 }
 
 // NewMagnetometer creates a new instance bound to I2C bus and address.
-func NewMagnetometer(bus *i2c.Bus, addr byte) *Magnetometer {
+func NewMagnetometer(bus i2c.Bus, addr byte) *Magnetometer {
 	return &Magnetometer{
 		bus:     bus,
 		address: addr,
