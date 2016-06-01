@@ -15,6 +15,11 @@ type IntVector struct {
 	X, Y, Z int16
 }
 
+// ScaleVector scales IntVector saved in r3.Vector according to scale arg.
+func ScaleVector(v r3.Vector, scale byte) r3.Vector {
+	return v.Mul(float64(scale) / float64(math.MaxInt16+1))
+}
+
 // ReadStatusAndVector reads status byte, and 3x2-byte X, Y and Z int16 vector values.
 func ReadStatusAndVector(bus i2c.Bus, addr, reg, scale byte) (v r3.Vector, e error) {
 	var status byte
@@ -30,11 +35,11 @@ func ReadStatusAndVector(bus i2c.Bus, addr, reg, scale byte) (v r3.Vector, e err
 	} else if status&0x0f == 0 {
 		e = &DataAvailabilityError{NewDataNotAvailable: true}
 	}
-	v = r3.Vector{
+	v = ScaleVector(r3.Vector{
 		X: float64(iv.X),
 		Y: float64(iv.Y),
 		Z: float64(iv.Z),
-	}.Mul(float64(scale) / float64(math.MaxInt16+1))
+	}, scale)
 	return
 }
 

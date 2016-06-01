@@ -113,7 +113,7 @@ func pushMinMax(v minimu9.IntVector, min, max *minimu9.IntVector) {
 }
 
 // Calibrate measures magnetometer bias until stop channel is written to.
-// Calibration offset is then saved to the magnetometer and returned.
+// Calibration offset is then saved to the magnetometer and the range is returned.
 func (m *Magnetometer) Calibrate(stop chan int) (r3.Vector, error) {
 	// Reset any previously computed offset.
 	if e := minimu9.WriteVector(m.bus, m.address, 0x16, minimu9.IntVector{}); e != nil {
@@ -129,12 +129,11 @@ func (m *Magnetometer) Calibrate(stop chan int) (r3.Vector, error) {
 				Y: int16((int(min.Y) + int(max.Y)) >> 1),
 				Z: int16((int(min.Z) + int(max.Z)) >> 1),
 			}
-			// TODO(dotdoom): scale the vector on return.
-			return r3.Vector{
-					X: float64(avg.X),
-					Y: float64(avg.Y),
-					// FIXME(dotdoom): maxint16+1
-					Z: float64(avg.Z)}.Mul(1.0 / (math.MaxInt16 / 4)),
+			// TODO(dotdoom): fetch the real configured scale
+			return minimu9.ScaleVector(r3.Vector{
+					X: float64(max.X) - float64(min.X),
+					Y: float64(max.Y) - float64(min.Y),
+					Z: float64(max.Z) - float64(min.Z)}, 4),
 				minimu9.WriteVector(m.bus, m.address, 0x16, avg)
 		default:
 			v, e := minimu9.ReadVector(m.bus, m.address, 0x08)
